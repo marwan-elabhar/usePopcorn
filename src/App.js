@@ -192,7 +192,7 @@ function WatchedSummary({ watched }) {
   )
 }
 
-function ListBox({ movies }) {
+function ListBox({ children }) {
 
 
   const [isOpen1, setIsOpen1] = useState(true);
@@ -206,7 +206,7 @@ function ListBox({ movies }) {
         {isOpen1 ? "–" : "+"}
       </button>
       {isOpen1 && (
-        <MoviesList movies={movies} />
+        children
       )}
     </div>
   )
@@ -248,7 +248,9 @@ export default function App() {
         <NumResults movies={movies} />
       </NavBar>
       <Main>
-        <ListBox movies={movies} />
+        <ListBox>
+          <MoviesList movies={movies} />
+        </ListBox>
         <WatchedBox />
       </Main>
     </div>
