@@ -233,11 +233,12 @@ export default function App() {
         if (!res.ok) throw new Error("Something went wrong")
         const data = await res.json()
         setMovies(data.Search)
-        setIsLoading(false)
       } catch (error) {
         setError(error.message)
         console
           .error(error)
+      } finally {
+        setIsLoading(false)
       }
 
 
@@ -275,7 +276,7 @@ function Loader() {
   return <p className="loader">Loading...</p>
 }
 
-function ErrorMessage({message}) {
+function ErrorMessage({ message }) {
   return <p className="error">
     <span>{message}</span>
   </p>
