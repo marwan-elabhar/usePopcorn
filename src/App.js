@@ -1,4 +1,6 @@
+import { func } from "prop-types";
 import React, { useEffect, useState } from "react";
+import StarRating from "./StarRating"
 
 const tempMovieData = [
   {
@@ -78,8 +80,7 @@ function Logo() {
   )
 }
 
-function Search() {
-  const [query, setQuery] = useState("");
+function Search({ query, setQuery }) {
 
   return (
     <input
@@ -107,11 +108,11 @@ function Main({ children }) {
 
 
 
-function WatchedList({ watched }) {
+function WatchedList({ watched, onSelectMovie }) {
   return (
     <ul className="list">
       {watched.map((movie) => (
-        <WatchedMovie key={movie.imdbID} movie={movie} />
+        <WatchedMovie key={movie.imdbID} movie={movie} onSelectMovie={onSelectMovie} />
       ))}
     </ul>
   )
@@ -191,20 +192,20 @@ function Box({ children }) {
 }
 
 
-function MoviesList({ movies }) {
+function MoviesList({ movies, onSelectMovie }) {
 
   return (
-    <ul className="list">
+    <ul className="list list-movies">
       {movies.map((movie) => (
-        <Movie key={movie.imdbID} movie={movie} />
+        <Movie key={movie.imdbID} onSelectMovie={onSelectMovie} movie={movie} />
       ))}
     </ul>
   )
 }
 
-function Movie({ movie }) {
+function Movie({ movie, onSelectMovie }) {
   return (
-    <li key={movie.imdbID}>
+    <li onClick={() => onSelectMovie(movie.imdbID)} key={movie.imdbID}>
       <img src={movie.Poster} alt={`${movie.Title} poster`} />
       <h3>{movie.Title}</h3>
       <div>
@@ -217,35 +218,99 @@ function Movie({ movie }) {
   )
 }
 
+
+function SelectedMovie({ selectedID, onCloseMovie }) {
+  const [movie, setMovie] = useState({})
+
+  const { Title: title, Year: year, Poster: poster, Runtime: runtime, imdbRating,
+    Plot: plot, Released: released, Actors: actors, Director: director,
+    Genre: genre
+  } = movie
+
+
+  useEffect(function () {
+    async function getMovieDetails() {
+      const res = await fetch(`http://www.omdbapi.com/?apikey=${KEY}&i=${selectedID}`)
+      const data = await res.json()
+      setMovie(data)
+
+    }
+    getMovieDetails()
+  }, [selectedID])
+
+
+  return <div className="details">
+    <header>
+      <button className="btn-back" onClick={onCloseMovie}>&larr;
+      </button>
+      <img src={poster} alt='Poster' />
+      <div className="details-overview">
+        <h2>{title}</h2>
+        <p>{released}</p>
+        <p>{genre}</p>
+        <p>{imdbRating} IMDb Rating</p>
+
+
+      </div>
+    </header>
+
+    <section>
+      <div className="rating">
+        <StarRating maxRating={10} size={24} />
+
+      </div>
+      <p><em>{plot}</em></p>
+      <p>Starring {actors}</p>
+      <p>Directed by {director}</p>
+    </section>
+  </div>
+
+}
+
+
 const KEY = "eede5d66"
 export default function App() {
+  const [query, setQuery] = useState("")
   const [movies, setMovies] = useState([]);
   const [watched, setWatched] = useState([]);
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [selectedID, setSelectedID] = useState(null)
+
+  function handleSelectMovie(id) {
+    setSelectedID(selectedID => id === selectedID ? null : id)
+  }
+
+  function handleCloseMovie() {
+    setSelectedID(null)
+  }
 
 
   useEffect(function () {
     async function fetchMovies() {
       try {
+        setError('')
         setIsLoading(true)
-        const res = await fetch(`http://www.omdbapi.com/?apikey=${KEY}&s=interstellar`)
+        const res = await fetch(`http://www.omdbapi.com/?apikey=${KEY}&s=${query}`)
         if (!res.ok) throw new Error("Something went wrong")
         const data = await res.json()
+        if (data.Response === "False") throw new Error("Movie not found")
         setMovies(data.Search)
       } catch (error) {
         setError(error.message)
-        console
-          .error(error)
       } finally {
         setIsLoading(false)
+
       }
 
-
-
+    }
+    if (query.length < 3) {
+      setMovies([])
+      setError("")
+      return
     }
     fetchMovies()
-  }, [])
+  }, [query])
 
 
 
@@ -253,19 +318,23 @@ export default function App() {
   return (
     <div>
       <NavBar >
-        <Search />
+        <Search query={query} setQuery={setQuery} />
         <NumResults movies={movies} />
       </NavBar>
       <Main>
         <Box>
           {/* {isLoading ? <Loader /> : <MoviesList movies={movies} />} */}
           {isLoading && <Loader />}
-          {!isLoading && !error && <MoviesList movies={movies} />}
+          {!isLoading && !error && <MoviesList movies={movies} onSelectMovie={handleSelectMovie} />}
           {error && <ErrorMessage message={error} />}
         </Box>
         <Box>
-          <WatchedSummary watched={watched} />
-          <WatchedList watched={watched} />
+          {selectedID ? <SelectedMovie selectedID={selectedID} onCloseMovie={handleCloseMovie} /> :
+            <div>
+              <WatchedSummary watched={watched} />
+              <WatchedList watched={watched} />
+            </div>
+          }
         </Box>
       </Main>
     </div>
