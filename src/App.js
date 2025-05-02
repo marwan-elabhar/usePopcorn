@@ -121,8 +121,8 @@ function WatchedList({ watched, onSelectMovie }) {
 function WatchedMovie({ movie }) {
   return (
     <li key={movie.imdbID}>
-      <img src={movie.Poster} alt={`${movie.Title} poster`} />
-      <h3>{movie.Title}</h3>
+      <img src={movie.poster} alt={`${movie.title} poster`} />
+      <h3>{movie.title}</h3>
       <div>
         <p>
           <span>⭐️</span>
@@ -219,14 +219,32 @@ function Movie({ movie, onSelectMovie }) {
 }
 
 
-function SelectedMovie({ selectedID, onCloseMovie }) {
+function SelectedMovie({ selectedID, onCloseMovie, onAddWatched, watched }) {
+
   const [movie, setMovie] = useState({})
   const [isLoading, setIsLoading] = useState(false)
+  const [userRating, setUserRating] = useState('')
 
   const { Title: title, Year: year, Poster: poster, Runtime: runtime, imdbRating,
     Plot: plot, Released: released, Actors: actors, Director: director,
     Genre: genre
   } = movie
+
+  const isWatched = watched.some(movie => movie.imdbID === selectedID)
+
+  function handleAddWatched() {
+    const newWatchedMovie = {
+      imdbID: selectedID,
+      title,
+      year,
+      poster,
+      imdbRating: Number(imdbRating),
+      runtime: Number(runtime.split(' ').at(0)),
+      userRating
+    }
+    onAddWatched(newWatchedMovie)
+    onCloseMovie()
+  }
 
 
   useEffect(function () {
@@ -258,8 +276,15 @@ function SelectedMovie({ selectedID, onCloseMovie }) {
 
         <section>
           <div className="rating">
-            <StarRating maxRating={10} size={24} />
+            {!isWatched ? (
+              <div>
+                <StarRating maxRating={10} size={24} onSetRating={setUserRating} />
 
+                {userRating > 0 && (<button className="btn-add" onClick={handleAddWatched}>Add to list</button>)
+                }
+              </div>
+            ) : (<p>You rated this movie</p>)
+            }
           </div>
           <p><em>{plot}</em></p>
           <p>Starring {actors}</p>
@@ -288,6 +313,10 @@ export default function App() {
 
   function handleCloseMovie() {
     setSelectedID(null)
+  }
+
+  function handleAddWatched(movie) {
+    setWatched(watched => [...watched, movie])
   }
 
 
@@ -334,7 +363,7 @@ export default function App() {
           {error && <ErrorMessage message={error} />}
         </Box>
         <Box>
-          {selectedID ? <SelectedMovie selectedID={selectedID} onCloseMovie={handleCloseMovie} /> :
+          {selectedID ? <SelectedMovie selectedID={selectedID} onCloseMovie={handleCloseMovie} onAddWatched={handleAddWatched} watched={watched} /> :
             <div>
               <WatchedSummary watched={watched} />
               <WatchedList watched={watched} />
